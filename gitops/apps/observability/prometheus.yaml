@@ -51,6 +51,24 @@ data:
       - /etc/prometheus/rules/*.yaml
 
     scrape_configs:
+      - job_name: kubernetes-nodes-cadvisor
+        scheme: https
+        kubernetes_sd_configs:
+          - role: node
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          insecure_skip_verify: true
+        metrics_path: /metrics/cadvisor
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
+
       - job_name: kubernetes-pods
         kubernetes_sd_configs:
           - role: pod
@@ -109,7 +127,12 @@ data:
               description: "O pod {{ $labels.pod }} reiniciou mais de 3 vezes em 10 minutos."
 
           - alert: TechChallengeHighErrorRate
-            expr: sum(rate(http_server_requests_total{namespace="techchallenge",status=~"5.."}[5m])) by (service) > 0.1
+            expr: |
+              (
+                sum(rate(http_requests_total{namespace="techchallenge",status=~"5.."}[5m])) by (service)
+                or
+                sum(rate(flask_http_request_total{namespace="techchallenge",status=~"5.."}[5m])) by (service)
+              ) > 0.1
             for: 5m
             labels:
               severity: critical
@@ -117,6 +140,25 @@ data:
             annotations:
               summary: "Alta taxa de erros 5xx em {{ $labels.service }}"
               description: "O servico esta emitindo respostas 5xx acima do limite esperado."
+
+          - alert: TechChallengeAuthHigh5xx
+            expr: |
+              (
+                sum(rate(http_requests_total{namespace="techchallenge",service="auth-service",status=~"5.."}[5m]))
+                /
+                clamp_min(sum(rate(http_requests_total{namespace="techchallenge",service="auth-service"}[5m])), 1)
+              ) > 0.05
+            for: 2m
+            labels:
+              severity: critical
+              team: platform
+              service: auth-service
+              self_heal: "true"
+            annotations:
+              summary: "Auth-service com taxa de 5xx acima de 5%"
+              description: "O auth-service ultrapassou 5% de respostas HTTP 5xx nos ultimos 5 minutos."
+              remediation: "rollout restart deployment/auth-service"
+              remediation_deployment: "auth-service"
 ---
 apiVersion: apps/v1
 kind: Deployment

@@ -1,6 +1,8 @@
 # Pendencias e Validacao da Fase 4
 
-Este arquivo lista o que ainda precisa ser validado ou finalizado para fechar a entrega da Fase 4 do Tech Challenge.
+Este arquivo lista os itens de validacao e as pendencias externas restantes para fechar a entrega da Fase 4 do Tech Challenge.
+
+O resultado consolidado da implementacao esta em `FASE4_RESULTADO.md`.
 
 ## Validacao Inicial
 
@@ -21,6 +23,7 @@ Aplicacoes esperadas:
 - evaluation-service
 - analytics-service
 - observability
+- metrics-server
 
 Importante: confirmar se os manifests do ArgoCD apontam para o repositorio da Fase 4.
 
@@ -146,88 +149,36 @@ Validar se o CronJob registra a varredura de pods em `CrashLoopBackOff`.
 
 ## O Que Ainda Falta
 
-### 1. Corrigir repoURL do ArgoCD
+### 1. Configurar chaves reais de APM, incidentes e ChatOps
 
-Validar se os manifests em `gitops/argocd` ainda apontam para:
+O repositorio esta preparado para New Relic, PagerDuty/OpsGenie e ChatOps, mas faltam valores reais:
 
-```text
-tech-challenge-fase-3
-```
+- `NEW_RELIC_LICENSE_KEY`
+- `pagerduty_routing_key` ou `opsgenie_api_key`
+- `chatops_webhook_url`
 
-Se sim, alterar para:
+Esses valores dependem de contas externas e nao podem ser gerados automaticamente.
 
-```text
-tech-challenge-fase-4
-```
+### 2. Validar New Relic
 
-### 2. Configurar Datadog ou New Relic
+Depois de preencher `NEW_RELIC_LICENSE_KEY`, gerar trafego e validar:
 
-O OpenTelemetry Collector esta preparado, mas ainda falta escolher e configurar uma plataforma externa:
+- traces distribuidos
+- service map
+- latencia
+- erros
+- throughput
 
-- Criar Secret com API key ou license key
-- Adicionar exporter no pipeline do Collector
-- Validar traces no APM externo
-- Demonstrar service map, latencia, erros e throughput
+### 3. Testar alerta real e incidente
 
-### 3. Configurar PagerDuty ou OpsGenie
+Depois de preencher PagerDuty/OpsGenie e ChatOps:
 
-O Alertmanager esta estruturado, mas ainda precisa de chave real:
+- disparar `TechChallengeAuthHigh5xx`
+- confirmar abertura de incidente
+- confirmar mensagem no canal ChatOps
+- confirmar log no `self-healing-webhook`
 
-- `pagerduty_routing_key`
-- ou `opsgenie_api_key`
-
-Tambem e necessario testar um alerta real.
-
-### 4. Configurar ChatOps
-
-Definir e configurar um webhook real, por exemplo:
-
-- Slack
-- Microsoft Teams
-- Discord
-- Google Chat
-
-### 5. Melhorar dashboards Grafana
-
-O dashboard inicial existe, mas para apresentacao recomenda-se adicionar paineis para:
-
-- CPU e memoria por servico
-- Restarts de pods
-- Logs por servico
-- Latencia
-- Taxa de erro
-- Status dos HPAs
-- Estado da stack de observabilidade
-- Fluxo SQS/analytics, se possivel
-
-### 6. Validar metricas HTTP reais
-
-Algumas regras de alerta dependem de metricas HTTP. E necessario validar no Prometheus quais metricas reais estao sendo expostas pelos servicos Python e Go.
-
-Se os nomes forem diferentes, ajustar as regras de alerta.
-
-### 7. Adicionar backend visual de traces
-
-Hoje os traces podem chegar ao OpenTelemetry Collector, mas ainda falta uma visualizacao dedicada.
-
-Opcoes:
-
-- Enviar traces para Datadog
-- Enviar traces para New Relic
-- Adicionar Grafana Tempo para demonstracao local
-- Adicionar Jaeger para demonstracao local
-
-### 8. Ajustar Terraform
-
-Pontos tecnicos recomendados:
-
-- DynamoDB usa chave `id`, mas o `analytics-service` grava `event_id`
-- Redis Security Group precisa liberar porta `6379`
-- RDS libera trafego demais; ideal restringir para TCP `5432`
-- Remover variaveis Terraform nao usadas
-- Evitar versionar senhas em `terraform.tfvars`
-
-### 9. Externalizar Secrets Kubernetes
+### 4. Externalizar Secrets Kubernetes
 
 Hoje existem secrets sensiveis em YAML.
 
@@ -240,7 +191,16 @@ Boas praticas recomendadas:
 
 Caso nao seja implementado, documentar essa limitacao na apresentacao.
 
-### 10. Teste ponta a ponta
+### 5. Revisar secrets/versionamento Terraform
+
+Evitar versionar:
+
+- senhas reais
+- `terraform.tfvars`
+- estados Terraform
+- chaves de integracao
+
+### 6. Teste ponta a ponta
 
 Executar e demonstrar o fluxo completo:
 
@@ -254,17 +214,7 @@ Analytics consumir evento
 DynamoDB receber evento
 Logs aparecerem no Loki
 Metricas aparecerem no Prometheus
-Trace aparecer no APM
+Trace aparecer no New Relic
 Alerta disparar
 Self-healing registrar acao
 ```
-
-## Prioridade Recomendada
-
-1. Corrigir `repoURL` do ArgoCD para o repositorio da Fase 4
-2. Validar Prometheus, Loki e Grafana em runtime
-3. Configurar Datadog ou New Relic
-4. Configurar PagerDuty ou OpsGenie
-5. Configurar ChatOps
-6. Ajustar pontos criticos do Terraform
-7. Executar teste ponta a ponta

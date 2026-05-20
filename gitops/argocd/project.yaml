@@ -7,10 +7,13 @@ spec:
   description: Projeto GitOps do Tech Challenge
   sourceRepos:
     - 'https://github.com/Kaio4816/tech-challenge-fase-4.git'
+    - 'https://kubernetes-sigs.github.io/metrics-server/'
   destinations:
     - namespace: techchallenge
       server: https://kubernetes.default.svc
     - namespace: observability
+      server: https://kubernetes.default.svc
+    - namespace: kube-system
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: '*'

@@ -31,6 +31,164 @@ subjects:
     name: self-healing-controller
     namespace: observability
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: self-healing-webhook
+  namespace: observability
+data:
+  server.py: |
+    import json
+    import os
+    from datetime import datetime, timezone
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    from kubernetes import client, config
+
+    NAMESPACE = os.getenv("TARGET_NAMESPACE", "techchallenge")
+    DEFAULT_DEPLOYMENT = os.getenv("DEFAULT_REMEDIATION_DEPLOYMENT", "auth-service")
+
+    config.load_incluster_config()
+    apps = client.AppsV1Api()
+
+    def log(level, message, **fields):
+        payload = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "service": "self-healing-webhook",
+            "level": level,
+            "message": message,
+            **fields,
+        }
+        print(json.dumps(payload), flush=True)
+
+    def restart_deployment(deployment):
+        patch = {
+            "spec": {
+                "template": {
+                    "metadata": {
+                        "annotations": {
+                            "self-healing.techchallenge/restarted-at": datetime.now(timezone.utc).isoformat()
+                        }
+                    }
+                }
+            }
+        }
+        apps.patch_namespaced_deployment(name=deployment, namespace=NAMESPACE, body=patch)
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            length = int(self.headers.get("Content-Length", "0"))
+            body = self.rfile.read(length)
+            try:
+                payload = json.loads(body or b"{}")
+            except json.JSONDecodeError:
+                payload = {}
+
+            deployments = []
+            for alert in payload.get("alerts", []):
+                labels = alert.get("labels", {})
+                annotations = alert.get("annotations", {})
+                if labels.get("self_heal") == "true":
+                    deployments.append(annotations.get("remediation_deployment", DEFAULT_DEPLOYMENT))
+
+            if not deployments:
+                deployments = [DEFAULT_DEPLOYMENT]
+
+            restarted = []
+            for deployment in sorted(set(deployments)):
+                try:
+                    restart_deployment(deployment)
+                    restarted.append(deployment)
+                    log("warning", "rollout restart triggered from alert", deployment=deployment)
+                except Exception as exc:
+                    log("error", "failed to execute rollout restart", deployment=deployment, error=str(exc))
+
+            response = json.dumps({"status": "ok", "restarted": restarted}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(response)))
+            self.end_headers()
+            self.wfile.write(response)
+
+        def log_message(self, format, *args):
+            return
+
+    if __name__ == "__main__":
+        log("info", "starting alert-driven self-healing webhook", namespace=NAMESPACE)
+        HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: self-healing-webhook
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: self-healing-webhook
+    app.kubernetes.io/part-of: techchallenge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: self-healing-webhook
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: self-healing-webhook
+        app.kubernetes.io/part-of: techchallenge
+    spec:
+      serviceAccountName: self-healing-controller
+      containers:
+        - name: self-healing-webhook
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -ec
+          args:
+            - |
+              pip install --no-cache-dir kubernetes==29.0.0
+              python /app/server.py
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: TARGET_NAMESPACE
+              value: techchallenge
+            - name: DEFAULT_REMEDIATION_DEPLOYMENT
+              value: auth-service
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          volumeMounts:
+            - name: webhook-code
+              mountPath: /app
+              readOnly: true
+      volumes:
+        - name: webhook-code
+          configMap:
+            name: self-healing-webhook
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: self-healing-webhook
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: self-healing-webhook
+    app.kubernetes.io/part-of: techchallenge
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: self-healing-webhook
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
 apiVersion: batch/v1
 kind: CronJob
 metadata:

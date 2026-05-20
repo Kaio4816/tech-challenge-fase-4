@@ -56,8 +56,12 @@ data:
       "uid": "techchallenge-overview",
       "title": "ToggleMaster Observability Overview",
       "schemaVersion": 39,
-      "version": 1,
+      "version": 2,
       "refresh": "30s",
+      "time": {
+        "from": "now-30m",
+        "to": "now"
+      },
       "panels": [
         {
           "type": "stat",
@@ -66,15 +70,57 @@ data:
           "targets": [{"expr": "sum(up{namespace=\"techchallenge\"})"}]
         },
         {
+          "type": "stat",
+          "title": "Pods Running",
+          "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+          "targets": [{"expr": "sum(kube_pod_status_phase{namespace=\"techchallenge\",phase=\"Running\"})"}]
+        },
+        {
+          "type": "stat",
+          "title": "Restarts 15m",
+          "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+          "targets": [{"expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"techchallenge\"}[15m]))"}]
+        },
+        {
+          "type": "stat",
+          "title": "HPA Desired Replicas",
+          "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+          "targets": [{"expr": "sum(kube_horizontalpodautoscaler_status_desired_replicas{namespace=\"techchallenge\"})"}]
+        },
+        {
           "type": "timeseries",
-          "title": "Scrape Health",
-          "gridPos": {"x": 6, "y": 0, "w": 12, "h": 8},
-          "targets": [{"expr": "up{namespace=\"techchallenge\"}"}]
+          "title": "Request Rate by Service",
+          "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+          "targets": [
+            {"expr": "sum by(service) (rate(http_requests_total{namespace=\"techchallenge\"}[5m]))"},
+            {"expr": "sum by(service) (rate(flask_http_request_total{namespace=\"techchallenge\"}[5m]))"}
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "HTTP 5xx by Service",
+          "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+          "targets": [
+            {"expr": "sum by(service) (rate(http_requests_total{namespace=\"techchallenge\",status=~\"5..\"}[5m]))"},
+            {"expr": "sum by(service) (rate(flask_http_request_total{namespace=\"techchallenge\",status=~\"5..\"}[5m]))"}
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "CPU Usage by Pod",
+          "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
+          "targets": [{"expr": "sum by(pod) (rate(container_cpu_usage_seconds_total{namespace=\"techchallenge\",container!=\"\"}[5m]))"}]
+        },
+        {
+          "type": "timeseries",
+          "title": "Memory Usage by Pod",
+          "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
+          "targets": [{"expr": "sum by(pod) (container_memory_working_set_bytes{namespace=\"techchallenge\",container!=\"\"})"}]
         },
         {
           "type": "logs",
-          "title": "Application Logs",
-          "gridPos": {"x": 0, "y": 8, "w": 24, "h": 10},
+          "title": "Application Logs - Real Time",
+          "gridPos": {"x": 0, "y": 20, "w": 24, "h": 10},
           "targets": [{"expr": "{namespace=\"techchallenge\"}"}]
         }
       ]

@@ -6,12 +6,16 @@ on:
     paths:
       - 'gitops/apps/observability/**'
       - 'gitops/argocd/app-observability.yaml'
+      - 'gitops/argocd/app-metrics-server.yaml'
+      - 'gitops/argocd/project.yaml'
       - '.github/workflows/observability.yml'
   push:
     branches: [main]
     paths:
       - 'gitops/apps/observability/**'
       - 'gitops/argocd/app-observability.yaml'
+      - 'gitops/argocd/app-metrics-server.yaml'
+      - 'gitops/argocd/project.yaml'
       - '.github/workflows/observability.yml'
 
 jobs:
@@ -27,7 +31,9 @@ jobs:
         run: |
           ruby -ryaml -e 'ARGV.each { |f| YAML.load_stream(File.read(f)); puts "OK #{f}" }' \
             gitops/apps/observability/*.yaml \
-            gitops/argocd/app-observability.yaml
+            gitops/argocd/app-observability.yaml \
+            gitops/argocd/app-metrics-server.yaml \
+            gitops/argocd/project.yaml
 
       - name: Install kubeconform
         run: |
@@ -43,4 +49,6 @@ jobs:
             -summary \
             -ignore-missing-schemas \
             gitops/apps/observability/*.yaml \
-            gitops/argocd/app-observability.yaml
+            gitops/argocd/app-observability.yaml \
+            gitops/argocd/app-metrics-server.yaml \
+            gitops/argocd/project.yaml
