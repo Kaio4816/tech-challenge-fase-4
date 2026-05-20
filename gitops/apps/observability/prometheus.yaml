@@ -117,7 +117,7 @@ data:
               description: "O alvo {{ $labels.pod }} esta fora do scrape do Prometheus ha mais de 2 minutos."
 
           - alert: TechChallengePodRestarting
-            expr: increase(kube_pod_container_status_restarts_total{namespace="techchallenge"}[10m]) > 3
+            expr: increase(kube_pod_container_status_restarts_total{exported_namespace="techchallenge"}[10m]) > 3
             for: 5m
             labels:
               severity: warning
