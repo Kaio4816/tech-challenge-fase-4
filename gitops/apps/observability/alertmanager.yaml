@@ -11,13 +11,17 @@ data:
     route:
       receiver: chatops-discord
       group_by: ["alertname", "service", "namespace"]
-      group_wait: 30s
+      group_wait: 5s
       group_interval: 5m
       repeat_interval: 2h
       routes:
         - receiver: self-healing-webhook
           matchers:
             - self_heal="true"
+          continue: true
+        - receiver: chatops-discord
+          matchers:
+            - severity="critical"
           continue: true
         - receiver: pagerduty
           matchers:
@@ -208,7 +212,7 @@ spec:
         app.kubernetes.io/name: alertmanager
         app.kubernetes.io/part-of: techchallenge
       annotations:
-        observability.techchallenge/config-version: "alertmanager-v2"
+        observability.techchallenge/config-version: "alertmanager-v3"
     spec:
       containers:
         - name: alertmanager
