@@ -14,6 +14,9 @@ on:
       - '.github/workflows/flag-service.yml'
       - '.github/workflows/reusable-ci.yml'
 
+permissions:
+  contents: write
+
 jobs:
   flag-service:
     uses: ./.github/workflows/reusable-ci.yml

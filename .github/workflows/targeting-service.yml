@@ -14,6 +14,9 @@ on:
       - '.github/workflows/targeting-service.yml'
       - '.github/workflows/reusable-ci.yml'
 
+permissions:
+  contents: write
+
 jobs:
   targeting-service:
     uses: ./.github/workflows/reusable-ci.yml

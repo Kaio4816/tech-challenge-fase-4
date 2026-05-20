@@ -14,6 +14,9 @@ on:
       - '.github/workflows/auth-service.yml'
       - '.github/workflows/reusable-ci.yml'
 
+permissions:
+  contents: write
+
 jobs:
   auth-service:
     uses: ./.github/workflows/reusable-ci.yml
