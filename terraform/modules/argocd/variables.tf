@@ -21,9 +21,3 @@ variable "argocd_hostname" {
   type        = string
   default     = ""
 }
-
-variable "argocd_bootstrap_manifests" {
-  description = "Manifestos declarativos para criar AppProject e Applications no bootstrap do ArgoCD"
-  type        = any
-  default     = []
-}
