@@ -70,6 +70,7 @@ jobs:
           pwd
           ls -la
           test -f go.mod || (echo "go.mod não encontrado em $(pwd)" && exit 1)
+          go mod tidy
           go mod download
 
       - name: Build Go
@@ -125,6 +126,12 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Prepare Go modules for lint
+        if: ${{ inputs.language == 'go' }}
+        run: |
+          cd "${SERVICE_PATH}"
+          go mod tidy
+
       - name: Run golangci-lint
         if: ${{ inputs.language == 'go' }}
         uses: golangci/golangci-lint-action@v6
@@ -132,6 +139,7 @@ jobs:
         with:
           version: latest
           working-directory: ${{ inputs.service_path }}
+          args: --timeout=5m
 
       - name: Install Python lint tools
         if: ${{ inputs.language == 'python' }}
@@ -188,6 +196,8 @@ jobs:
       - name: Install gosec
         if: ${{ inputs.language == 'go' }}
         run: |
+          cd "${SERVICE_PATH}"
+          go mod tidy
           go install github.com/securego/gosec/v2/cmd/gosec@latest
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
 
@@ -263,16 +273,17 @@ jobs:
         with:
           repository: ${{ secrets.GITOPS_REPOSITORY }}
           token: ${{ secrets.GITOPS_PAT }}
-          path: gitops
+          path: gitops-repo
 
       - name: Debug GitOps repo
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          ls -R gitops
+          ls -R gitops-repo
 
       - name: Update image tag in GitOps manifest
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          FILE="gitops/${GITOPS_MANIFEST_PATH}"
+          FILE="gitops-repo/${GITOPS_MANIFEST_PATH}"
 
           if [ ! -f "${FILE}" ]; then
             echo "Manifesto não encontrado: ${FILE}"
@@ -287,7 +298,7 @@ jobs:
       - name: Commit and push GitOps changes
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          cd gitops
+          cd gitops-repo
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add "${GITOPS_MANIFEST_PATH}"
