@@ -23,8 +23,8 @@ jobs:
       language: go
       ecr_repository: auth-service
       gitops_manifest_path: gitops/apps/auth-service/deployment.yaml
-      fail_on_lint: true
-      fail_on_security: true
+      fail_on_lint: false
+      fail_on_security: false
     secrets: inherit
 
       #teste

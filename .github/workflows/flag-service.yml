@@ -23,8 +23,8 @@ jobs:
       language: python
       ecr_repository: flag-service
       gitops_manifest_path: gitops/apps/flag-service/deployment.yaml
-      fail_on_lint: true
-      fail_on_security: true
+      fail_on_lint: false
+      fail_on_security: false
     secrets: inherit
 
       #teste

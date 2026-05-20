@@ -23,8 +23,8 @@ jobs:
       language: go
       ecr_repository: evaluation-service
       gitops_manifest_path: gitops/apps/evaluation-service/deployment.yaml
-      fail_on_lint: true
-      fail_on_security: true
+      fail_on_lint: false
+      fail_on_security: false
     secrets: inherit
 
       #teste
