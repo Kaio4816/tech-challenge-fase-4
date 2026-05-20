@@ -49,6 +49,8 @@ resource "helm_release" "argocd" {
       global = {
         domain = var.argocd_hostname != "" ? var.argocd_hostname : null
       }
+
+      extraObjects = var.argocd_bootstrap_manifests
     })
   ]
 }

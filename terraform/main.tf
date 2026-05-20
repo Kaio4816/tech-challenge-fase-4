@@ -73,6 +73,15 @@ module "argocd" {
   argocd_chart_version = var.argocd_chart_version
   argocd_service_type  = var.argocd_service_type
   argocd_hostname      = var.argocd_hostname
+  argocd_bootstrap_manifests = concat(
+    [
+      yamldecode(file("${path.root}/../gitops/argocd/project.yaml"))
+    ],
+    [
+      for manifest in sort(fileset("${path.root}/../gitops/argocd", "app-*.yaml")) :
+      yamldecode(file("${path.root}/../gitops/argocd/${manifest}"))
+    ]
+  )
 
   depends_on = [module.eks]
 }
