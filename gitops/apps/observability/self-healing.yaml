@@ -57,7 +57,7 @@ spec:
           restartPolicy: Never
           containers:
             - name: self-healing
-              image: bitnami/kubectl:1.29.4
+              image: public.ecr.aws/bitnami/kubectl:1.29
               command:
                 - /bin/sh
                 - -ec

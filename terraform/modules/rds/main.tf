@@ -21,12 +21,15 @@ locals {
   databases = {
     auth-service = {
       identifier = "auth-service"
+      db_name    = null
     }
     flag-service = {
       identifier = "flag-service"
+      db_name    = "flags_db"
     }
     targeting-service = {
       identifier = "targeting-service"
+      db_name    = "targeting_db"
     }
   }
 }
@@ -44,6 +47,7 @@ resource "aws_db_instance" "postgres" {
 
   username = var.db_username
   password = var.db_password
+  db_name  = each.value.db_name
 
   db_subnet_group_name   = aws_db_subnet_group.db-subnet.name
   vpc_security_group_ids = [aws_security_group.rds.id]
@@ -61,10 +65,10 @@ resource "aws_db_instance" "postgres" {
 
 resource "aws_security_group_rule" "rds_all_from_vpc" {
   type              = "ingress"
-  from_port         = 0
-  to_port           = 0
-  protocol          = "-1"
+  from_port         = 5432
+  to_port           = 5432
+  protocol          = "tcp"
   security_group_id = aws_security_group.rds.id
   cidr_blocks       = [var.vpc_cidr]
-  description       = "Allow ALL traffic from VPC"
+  description       = "Allow PostgreSQL traffic from VPC"
 }

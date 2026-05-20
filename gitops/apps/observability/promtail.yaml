@@ -109,13 +109,13 @@ spec:
               memory: 256Mi
           readinessProbe:
             httpGet:
-              path: /ready
+              path: /metrics
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /ready
+              path: /metrics
               port: http
             initialDelaySeconds: 20
             periodSeconds: 20

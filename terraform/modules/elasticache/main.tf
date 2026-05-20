@@ -4,6 +4,16 @@ resource "aws_security_group" "redis" {
   vpc_id      = var.vpc_id
 }
 
+resource "aws_security_group_rule" "redis_from_vpc" {
+  type              = "ingress"
+  from_port         = 6379
+  to_port           = 6379
+  protocol          = "tcp"
+  security_group_id = aws_security_group.redis.id
+  cidr_blocks       = [var.vpc_cidr]
+  description       = "Allow Redis traffic from VPC"
+}
+
 resource "aws_elasticache_subnet_group" "snet-group" {
   name       = "${var.project_name}-${var.environment}-redis-subnet-group"
   subnet_ids = var.subnet_ids

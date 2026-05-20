@@ -45,6 +45,7 @@ module "elasticache" {
   project_name    = var.project_name
   environment     = var.environment
   vpc_id          = module.networking.vpc_id
+  vpc_cidr        = var.vpc_cidr
   subnet_ids      = module.networking.private_subnet_ids
   redis_node_type = var.redis_node_type
 }
