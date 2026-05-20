@@ -1,0 +1,30 @@
+name: CI/CD - flag-service
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'flag-service/**'
+      - '.github/workflows/flag-service.yml'
+      - '.github/workflows/reusable-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'flag-service/**'
+      - '.github/workflows/flag-service.yml'
+      - '.github/workflows/reusable-ci.yml'
+
+jobs:
+  flag-service:
+    uses: ./.github/workflows/reusable-ci.yml
+    with:
+      service_name: flag-service
+      service_path: flag-service
+      language: python
+      ecr_repository: flag-service
+      gitops_manifest_path: gitops/apps/flag-service/deployment.yaml
+      fail_on_lint: true
+      fail_on_security: true
+    secrets: inherit
+
+      #teste

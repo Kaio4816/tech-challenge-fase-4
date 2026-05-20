@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flag-service
+  namespace: techchallenge
+  labels:
+    app.kubernetes.io/name: flag-service
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: techchallenge
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: flag-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: flag-service
+        app.kubernetes.io/component: backend
+        app.kubernetes.io/part-of: techchallenge
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8002"
+    spec:
+      containers:
+        - name: flag-service
+          image: 712819938659.dkr.ecr.us-east-1.amazonaws.com/flag-service:9152d2c
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8002
+          env:
+            - name: APP_NAME
+              value: flag-service
+            - name: PORT
+              value: "8002"
+            - name: OTEL_SERVICE_NAME
+              value: flag-service
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.observability.svc.cluster.local:4318"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: http/protobuf
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.namespace=techchallenge,deployment.environment=dev"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: flag-service-secret
+                  key: DATABASE_URL
+            - name: AUTH_SERVICE_URL
+              value: "http://auth-service:8001"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            timeoutSeconds: 2
+            periodSeconds: 20
+            failureThreshold: 3

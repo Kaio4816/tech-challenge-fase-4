@@ -1,0 +1,30 @@
+name: CI/CD - evaluation-service
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'evaluation-service/**'
+      - '.github/workflows/evaluation-service.yml'
+      - '.github/workflows/reusable-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'evaluation-service/**'
+      - '.github/workflows/evaluation-service.yml'
+      - '.github/workflows/reusable-ci.yml'
+
+jobs:
+  evaluation-service:
+    uses: ./.github/workflows/reusable-ci.yml
+    with:
+      service_name: evaluation-service
+      service_path: evaluation-service
+      language: go
+      ecr_repository: evaluation-service
+      gitops_manifest_path: gitops/apps/evaluation-service/deployment.yaml
+      fail_on_lint: true
+      fail_on_security: true
+    secrets: inherit
+
+      #teste

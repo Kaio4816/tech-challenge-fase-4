@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-service
+  namespace: techchallenge
+  labels:
+    app.kubernetes.io/name: analytics-service
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: techchallenge
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: analytics-service
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: analytics-service
+        app.kubernetes.io/component: backend
+        app.kubernetes.io/part-of: techchallenge
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8005"
+    spec:
+      containers:
+        - name: analytics-service
+          image: 712819938659.dkr.ecr.us-east-1.amazonaws.com/analytics-service:9152d2c
+          imagePullPolicy: Always
+
+          ports:
+            - name: http
+              containerPort: 8005
+
+          env:
+            - name: APP_NAME
+              value: analytics-service
+            - name: PORT
+              value: "8005"
+            - name: OTEL_SERVICE_NAME
+              value: analytics-service
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://otel-collector.observability.svc.cluster.local:4318"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: http/protobuf
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.namespace=techchallenge,deployment.environment=dev"
+
+            # Configs da aplicação (não sensíveis)
+            - name: AWS_REGION
+              value: "us-east-1"
+            - name: AWS_DYNAMODB_TABLE
+              value: "ToggleMasterAnalytics"
+
+            # URL do SQS (pode ir em configmap, mas pode deixar aqui também)
+            - name: AWS_SQS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: analytics-service-secret
+                  key: aws_sqs_url
+
+            # Credenciais AWS via Secret
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: analytics-service-secret
+                  key: aws_access_key_id
+
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: analytics-service-secret
+                  key: aws_secret_access_key
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 10
+            failureThreshold: 3
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            timeoutSeconds: 2
+            periodSeconds: 20
+            failureThreshold: 3

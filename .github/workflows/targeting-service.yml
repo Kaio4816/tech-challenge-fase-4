@@ -1,0 +1,30 @@
+name: CI/CD - targeting-service
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'targeting-service/**'
+      - '.github/workflows/targeting-service.yml'
+      - '.github/workflows/reusable-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'targeting-service/**'
+      - '.github/workflows/targeting-service.yml'
+      - '.github/workflows/reusable-ci.yml'
+
+jobs:
+  targeting-service:
+    uses: ./.github/workflows/reusable-ci.yml
+    with:
+      service_name: targeting-service
+      service_path: targeting-service
+      language: python
+      ecr_repository: targeting-service
+      gitops_manifest_path: gitops/apps/targeting-service/deployment.yaml
+      fail_on_lint: true
+      fail_on_security: true
+    secrets: inherit
+
+    #teste

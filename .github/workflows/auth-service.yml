@@ -1,0 +1,30 @@
+name: CI/CD - auth-service
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'auth-service/**'
+      - '.github/workflows/auth-service.yml'
+      - '.github/workflows/reusable-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'auth-service/**'
+      - '.github/workflows/auth-service.yml'
+      - '.github/workflows/reusable-ci.yml'
+
+jobs:
+  auth-service:
+    uses: ./.github/workflows/reusable-ci.yml
+    with:
+      service_name: auth-service
+      service_path: auth-service
+      language: go
+      ecr_repository: auth-service
+      gitops_manifest_path: gitops/apps/auth-service/deployment.yaml
+      fail_on_lint: true
+      fail_on_security: true
+    secrets: inherit
+
+      #teste

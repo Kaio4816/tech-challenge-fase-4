@@ -1,0 +1,46 @@
+name: CI - observability
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'gitops/apps/observability/**'
+      - 'gitops/argocd/app-observability.yaml'
+      - '.github/workflows/observability.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'gitops/apps/observability/**'
+      - 'gitops/argocd/app-observability.yaml'
+      - '.github/workflows/observability.yml'
+
+jobs:
+  validate-observability-manifests:
+    name: Validate Observability Manifests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate YAML syntax
+        run: |
+          ruby -ryaml -e 'ARGV.each { |f| YAML.load_stream(File.read(f)); puts "OK #{f}" }' \
+            gitops/apps/observability/*.yaml \
+            gitops/argocd/app-observability.yaml
+
+      - name: Install kubeconform
+        run: |
+          curl -sSL -o kubeconform.tar.gz \
+            https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
+          tar -xzf kubeconform.tar.gz kubeconform
+          sudo mv kubeconform /usr/local/bin/kubeconform
+
+      - name: Validate Kubernetes schemas
+        run: |
+          kubeconform \
+            -strict \
+            -summary \
+            -ignore-missing-schemas \
+            gitops/apps/observability/*.yaml \
+            gitops/argocd/app-observability.yaml

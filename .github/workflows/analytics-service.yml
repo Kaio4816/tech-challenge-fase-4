@@ -1,0 +1,30 @@
+name: CI/CD - analytics-service
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'analytics-service/**'
+      - '.github/workflows/analytics-service.yml'
+      - '.github/workflows/reusable-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'analytics-service/**'
+      - '.github/workflows/analytics-service.yml'
+      - '.github/workflows/reusable-ci.yml'
+
+jobs:
+  analytics-service:
+    uses: ./.github/workflows/reusable-ci.yml
+    with:
+      service_name: analytics-service
+      service_path: analytics-service
+      language: python
+      ecr_repository: analytics-service
+      gitops_manifest_path: gitops/apps/analytics-service/deployment.yaml
+      fail_on_lint: true
+      fail_on_security: true
+    secrets: inherit
+
+      #teste
