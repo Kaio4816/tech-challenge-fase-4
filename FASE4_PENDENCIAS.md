@@ -151,11 +151,11 @@ Validar se o CronJob registra a varredura de pods em `CrashLoopBackOff`.
 
 ### 1. Configurar chaves reais de APM, incidentes e ChatOps
 
-O repositorio esta preparado para New Relic, PagerDuty/OpsGenie e ChatOps, mas faltam valores reais:
+O repositorio esta preparado para New Relic, PagerDuty e ChatOps, mas os valores reais devem ser informados como variaveis sensiveis do Terraform:
 
-- `NEW_RELIC_LICENSE_KEY`
-- `pagerduty_routing_key` ou `opsgenie_api_key`
-- `chatops_webhook_url`
+- `TF_VAR_new_relic_license_key`
+- `TF_VAR_pagerduty_routing_key`
+- `TF_VAR_discord_webhook_url`
 
 Esses valores dependem de contas externas e nao podem ser gerados automaticamente.
 
@@ -171,7 +171,7 @@ Depois de preencher `NEW_RELIC_LICENSE_KEY`, gerar trafego e validar:
 
 ### 3. Testar alerta real e incidente
 
-Depois de preencher PagerDuty/OpsGenie e ChatOps:
+Depois de preencher PagerDuty e Discord:
 
 - disparar `TechChallengeAuthHigh5xx`
 - confirmar abertura de incidente

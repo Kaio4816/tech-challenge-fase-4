@@ -1,15 +1,4 @@
 apiVersion: v1
-kind: Secret
-metadata:
-  name: incident-integrations-secret
-  namespace: observability
-type: Opaque
-stringData:
-  chatops_webhook_url: ""
-  pagerduty_routing_key: ""
-  opsgenie_api_key: ""
----
-apiVersion: v1
 kind: ConfigMap
 metadata:
   name: alertmanager-config
@@ -20,7 +9,7 @@ data:
       resolve_timeout: 5m
 
     route:
-      receiver: chatops-webhook
+      receiver: chatops-discord
       group_by: ["alertname", "service", "namespace"]
       group_wait: 30s
       group_interval: 5m
@@ -34,10 +23,6 @@ data:
           matchers:
             - severity="critical"
           continue: true
-        - receiver: opsgenie
-          matchers:
-            - severity="critical"
-          continue: true
 
     receivers:
       - name: self-healing-webhook
@@ -45,20 +30,164 @@ data:
           - url: http://self-healing-webhook.observability.svc.cluster.local:8080/alert
             send_resolved: false
 
-      - name: chatops-webhook
+      - name: chatops-discord
         webhook_configs:
-          - url_file: /etc/alertmanager/secrets/chatops_webhook_url
+          - url: http://chatops-discord-webhook.observability.svc.cluster.local:8080/alert
             send_resolved: true
 
       - name: pagerduty
         pagerduty_configs:
           - routing_key_file: /etc/alertmanager/secrets/pagerduty_routing_key
             send_resolved: true
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chatops-discord-webhook
+  namespace: observability
+data:
+  server.py: |
+    import json
+    import os
+    import urllib.request
+    from datetime import datetime, timezone
+    from http.server import BaseHTTPRequestHandler, HTTPServer
 
-      - name: opsgenie
-        opsgenie_configs:
-          - api_key_file: /etc/alertmanager/secrets/opsgenie_api_key
-            send_resolved: true
+    DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
+
+    def log(level, message, **fields):
+        payload = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "service": "chatops-discord-webhook",
+            "level": level,
+            "message": message,
+            **fields,
+        }
+        print(json.dumps(payload), flush=True)
+
+    def post_to_discord(payload):
+        if not DISCORD_WEBHOOK_URL:
+            log("warning", "discord webhook url not configured")
+            return
+        data = json.dumps(payload).encode("utf-8")
+        request = urllib.request.Request(
+            DISCORD_WEBHOOK_URL,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=10) as response:
+            response.read()
+
+    def build_message(alertmanager_payload):
+        status = alertmanager_payload.get("status", "unknown")
+        alerts = alertmanager_payload.get("alerts", [])
+        lines = [f"**ToggleMaster Alertmanager** - `{status}`"]
+        for alert in alerts[:8]:
+            labels = alert.get("labels", {})
+            annotations = alert.get("annotations", {})
+            lines.extend([
+                "",
+                f"**Alert:** {labels.get('alertname', 'unknown')}",
+                f"**Severity:** {labels.get('severity', 'unknown')}",
+                f"**Service:** {labels.get('service', labels.get('job', 'unknown'))}",
+                f"**Namespace:** {labels.get('namespace', 'unknown')}",
+                f"**Summary:** {annotations.get('summary', 'Sem resumo')}",
+                f"**Description:** {annotations.get('description', 'Sem descricao')}",
+            ])
+            remediation = annotations.get("remediation")
+            if remediation:
+                lines.append(f"**Remediation:** `{remediation}`")
+        return {"content": "\n".join(lines)[:1900]}
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            length = int(self.headers.get("Content-Length", "0"))
+            body = self.rfile.read(length)
+            try:
+                payload = json.loads(body or b"{}")
+                post_to_discord(build_message(payload))
+                log("info", "discord notification sent", alerts=len(payload.get("alerts", [])))
+                self.send_response(200)
+            except Exception as exc:
+                log("error", "failed to send discord notification", error=str(exc))
+                self.send_response(500)
+            self.end_headers()
+
+        def log_message(self, format, *args):
+            return
+
+    if __name__ == "__main__":
+        log("info", "starting discord chatops webhook")
+        HTTPServer(("0.0.0.0", 8080), Handler).serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chatops-discord-webhook
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: chatops-discord-webhook
+    app.kubernetes.io/part-of: techchallenge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: chatops-discord-webhook
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: chatops-discord-webhook
+        app.kubernetes.io/part-of: techchallenge
+    spec:
+      containers:
+        - name: chatops-discord-webhook
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - /app/server.py
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: DISCORD_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: incident-integrations-secret
+                  key: discord_webhook_url
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: webhook-code
+              mountPath: /app
+              readOnly: true
+      volumes:
+        - name: webhook-code
+          configMap:
+            name: chatops-discord-webhook
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chatops-discord-webhook
+  namespace: observability
+  labels:
+    app.kubernetes.io/name: chatops-discord-webhook
+    app.kubernetes.io/part-of: techchallenge
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: chatops-discord-webhook
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
 ---
 apiVersion: apps/v1
 kind: Deployment

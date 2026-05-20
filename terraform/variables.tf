@@ -133,3 +133,24 @@ variable "db_engine_version" {
   type    = string
   default = "16.13"
 }
+
+variable "new_relic_license_key" {
+  description = "License key do New Relic usada pelo OpenTelemetry Collector."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "pagerduty_routing_key" {
+  description = "Integration/routing key do PagerDuty Events API v2 usada pelo Alertmanager."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "discord_webhook_url" {
+  description = "Webhook do Discord usado pelo adaptador ChatOps."
+  type        = string
+  default     = ""
+  sensitive   = true
+}

@@ -64,13 +64,12 @@ Servicos Go atualizados:
 
 Escolha preparada: New Relic.
 
-O OTel Collector possui exporter `otlphttp/newrelic` e Secret `external-apm-secret`.
+O OTel Collector possui exporter `otlphttp/newrelic` e usa a Secret `external-apm-secret`, gerenciada pelo Terraform.
 
 O que falta fazer manualmente:
 
 - criar conta New Relic
-- obter `NEW_RELIC_LICENSE_KEY`
-- preencher a Secret no GitOps ou trocar por External Secrets/SOPS
+- informar `TF_VAR_new_relic_license_key` antes do `terraform apply`
 - gerar trafego e validar traces, service map, latencia, erros e throughput no New Relic
 
 Nao consigo criar a conta nem obter a license key por voce.
@@ -91,21 +90,20 @@ A regra especifica `TechChallengeAuthHigh5xx` possui label `self_heal="true"` e 
 Alertmanager esta preparado para:
 
 - PagerDuty
-- OpsGenie
 - ChatOps via webhook
 
 O que falta fazer manualmente:
 
-- criar conta PagerDuty ou OpsGenie
-- obter `pagerduty_routing_key` ou `opsgenie_api_key`
-- obter webhook do Slack, Discord ou Teams
-- preencher a Secret `incident-integrations-secret`
+- criar conta PagerDuty
+- obter `pagerduty_routing_key`
+- obter webhook do Discord
+- informar `TF_VAR_pagerduty_routing_key` e `TF_VAR_discord_webhook_url` antes do `terraform apply`
 
 Nao consigo criar essas contas nem gerar as chaves por voce.
 
 ## 8. ChatOps
 
-Alertmanager envia notificacoes para `chatops-webhook`.
+Alertmanager envia notificacoes para o adaptador interno `chatops-discord-webhook`, que formata o payload e repassa para o Discord.
 
 Campos esperados no alerta:
 
@@ -116,7 +114,7 @@ Campos esperados no alerta:
 - descricao
 - acao de remediacao
 
-Para ativar, preencha `chatops_webhook_url` na Secret `incident-integrations-secret`.
+Para ativar, informe `TF_VAR_discord_webhook_url` antes do `terraform apply`.
 
 ## 9. Self-healing
 
@@ -167,9 +165,21 @@ kubectl logs -n observability deploy/self-healing-webhook
 kubectl logs -n observability cronjob/crashloop-self-healing
 ```
 
-## 11. Limitacoes conhecidas
+## 11. Variaveis sensiveis para automacao
 
-- Chaves reais de New Relic, PagerDuty/OpsGenie e ChatOps nao podem ser geradas automaticamente.
-- Secrets sensiveis ainda estao em manifests YAML; para producao, usar External Secrets, SOPS ou Sealed Secrets.
+Para recriar a infraestrutura ja com New Relic, PagerDuty e Discord configurados, exporte as variaveis abaixo antes do `terraform apply`:
+
+```bash
+export TF_VAR_new_relic_license_key="<NEW_RELIC_LICENSE_KEY>"
+export TF_VAR_pagerduty_routing_key="<PAGERDUTY_EVENTS_API_V2_ROUTING_KEY>"
+export TF_VAR_discord_webhook_url="<DISCORD_WEBHOOK_URL>"
+```
+
+Esses valores nao devem ser commitados no Git.
+
+## 12. Limitacoes conhecidas
+
+- Chaves reais de New Relic, PagerDuty e Discord nao podem ser geradas automaticamente.
+- Secrets de integracao externa ficam no Terraform como variaveis sensiveis; para producao, avaliar AWS Secrets Manager, External Secrets, SOPS ou Sealed Secrets.
 - O exporter New Relic so ficara funcional quando `NEW_RELIC_LICENSE_KEY` for preenchida.
 - O service map no APM depende de trafego real entre os microsservicos.
