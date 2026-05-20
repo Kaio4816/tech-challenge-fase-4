@@ -57,6 +57,7 @@ def process_message(message):
         
         # Constrói o item no formato do DynamoDB
         item = {
+            'id': {'S': event_id},
             'event_id': {'S': event_id},
             'user_id': {'S': body['user_id']},
             'flag_name': {'S': body['flag_name']},

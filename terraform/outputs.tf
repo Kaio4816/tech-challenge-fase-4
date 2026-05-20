@@ -14,6 +14,10 @@ output "eks_node_role_arn" {
   value = module.eks.node_role_arn
 }
 
+output "eks_node_role_name" {
+  value = module.eks.node_role_name
+}
+
 output "rds_endpoints" {
   value = module.rds.rds_endpoints
 }
@@ -26,8 +30,16 @@ output "dynamodb_table_name" {
   value = module.dynamodb.table_name
 }
 
+output "dynamodb_table_arn" {
+  value = module.dynamodb.table_arn
+}
+
 output "sqs_queue_url" {
   value = module.sqs.queue_url
+}
+
+output "sqs_queue_arn" {
+  value = module.sqs.queue_arn
 }
 
 output "ecr_repository_urls" {
