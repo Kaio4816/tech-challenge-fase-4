@@ -238,7 +238,7 @@ metadata:
     app.kubernetes.io/name: prometheus
     app.kubernetes.io/part-of: techchallenge
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
     app.kubernetes.io/name: prometheus
   ports:

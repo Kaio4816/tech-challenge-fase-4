@@ -212,7 +212,7 @@ metadata:
     app.kubernetes.io/name: grafana
     app.kubernetes.io/part-of: techchallenge
 spec:
-  type: ClusterIP
+  type: LoadBalancer
   selector:
     app.kubernetes.io/name: grafana
   ports:
