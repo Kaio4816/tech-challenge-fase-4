@@ -25,11 +25,11 @@ locals {
     }
     flag-service = {
       identifier = "flag-service"
-      db_name    = null
+      db_name    = "flags_db"
     }
     targeting-service = {
       identifier = "targeting-service"
-      db_name    = null
+      db_name    = "targeting_db"
     }
   }
 }
