@@ -6,9 +6,11 @@ metadata:
 spec:
   description: Projeto GitOps do Tech Challenge
   sourceRepos:
-    - 'https://github.com/Kaio4816/tech-challenge-fase-3.git'
+    - 'https://github.com/Kaio4816/tech-challenge-fase-4.git'
   destinations:
     - namespace: techchallenge
+      server: https://kubernetes.default.svc
+    - namespace: observability
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: '*'
