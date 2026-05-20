@@ -26,6 +26,7 @@ RUN apk add --no-cache ca-certificates && \
     addgroup -S app && adduser -S app -G app
 
 COPY --from=builder /out/auth-service /app/auth-service
+COPY db ./db
 
 USER app
 

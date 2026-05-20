@@ -30,6 +30,23 @@ if not DATABASE_URL or not AUTH_SERVICE_URL:
     log.critical("Erro: DATABASE_URL e AUTH_SERVICE_URL devem ser definidos.")
     sys.exit(1)
 
+def initialize_schema():
+    """Inicializa o schema do banco para ambientes recriados do zero."""
+    schema_path = os.path.join(os.path.dirname(__file__), "db", "init.sql")
+    try:
+        with open(schema_path, encoding="utf-8") as schema_file:
+            schema = schema_file.read()
+        with psycopg2.connect(DATABASE_URL) as conn:
+            conn.autocommit = True
+            with conn.cursor() as cur:
+                cur.execute(schema)
+        log.info("Schema do flag-service inicializado com sucesso.")
+    except Exception as e:
+        log.critical(f"Erro fatal ao inicializar schema do flag-service: {e}")
+        sys.exit(1)
+
+initialize_schema()
+
 # --- Pool de Conexão com o Banco ---
 # Inicializa o pool de conexões (Mín: 1, Máx: 5 conexões)
 try:

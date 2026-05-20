@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -61,6 +62,14 @@ func main() {
 	}
 	defer db.Close()
 
+	if err := initializeSchema(db); err != nil {
+		log.Fatalf("Não foi possível inicializar o schema do banco: %v", err)
+	}
+
+	if err := bootstrapAPIKeys(db, os.Getenv("BOOTSTRAP_API_KEYS")); err != nil {
+		log.Fatalf("Não foi possível cadastrar as chaves iniciais de API: %v", err)
+	}
+
 	app := &App{
 		DB:        db,
 		MasterKey: masterKey,
@@ -92,4 +101,38 @@ func connectDB(databaseURL string) (*sql.DB, error) {
 
 	log.Println("Conectado ao PostgreSQL com sucesso!")
 	return db, nil
+}
+
+func initializeSchema(db *sql.DB) error {
+	schema, err := os.ReadFile("db/init.sql")
+	if err != nil {
+		return err
+	}
+
+	if _, err := db.Exec(string(schema)); err != nil {
+		return err
+	}
+
+	log.Println("Schema do auth-service inicializado com sucesso.")
+	return nil
+}
+
+func bootstrapAPIKeys(db *sql.DB, rawKeys string) error {
+	for _, rawKey := range strings.Split(rawKeys, ",") {
+		key := strings.TrimSpace(rawKey)
+		if key == "" {
+			continue
+		}
+
+		keyHash := hashAPIKey(key)
+		if _, err := db.Exec(
+			"INSERT INTO api_keys (name, key_hash, is_active) VALUES ($1, $2, true) ON CONFLICT (key_hash) DO UPDATE SET is_active = true",
+			"bootstrap-service-key",
+			keyHash,
+		); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
