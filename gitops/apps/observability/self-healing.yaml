@@ -198,13 +198,14 @@ metadata:
     app.kubernetes.io/name: crashloop-self-healing
     app.kubernetes.io/part-of: techchallenge
 spec:
-  schedule: "*/5 * * * *"
+  schedule: "*/10 * * * *"
   concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
   jobTemplate:
     spec:
       backoffLimit: 1
+      ttlSecondsAfterFinished: 300
       template:
         metadata:
           labels:
