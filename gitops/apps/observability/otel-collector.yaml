@@ -102,6 +102,7 @@ spec:
         app.kubernetes.io/name: otel-collector
         app.kubernetes.io/part-of: techchallenge
       annotations:
+        observability.techchallenge/config-version: "otel-collector-v2"
         prometheus.io/scrape: "true"
         prometheus.io/port: "8888"
         prometheus.io/path: /metrics

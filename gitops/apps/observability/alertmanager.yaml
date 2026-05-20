@@ -78,6 +78,8 @@ spec:
       labels:
         app.kubernetes.io/name: alertmanager
         app.kubernetes.io/part-of: techchallenge
+      annotations:
+        observability.techchallenge/config-version: "alertmanager-v2"
     spec:
       containers:
         - name: alertmanager
